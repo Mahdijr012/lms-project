@@ -20,3 +20,6 @@ class Book:
 
     def get_info(self):
         return f"{self._title} by {self._author}"
+
+    def get_isbn(self):
+        return self._isbn
