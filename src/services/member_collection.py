@@ -38,6 +38,11 @@ class MemberCollection:
         self._members[member.member_id] = member
         return True, "Member registered successfully."
 
+    # THIS IS THE NEW METHOD TO ADD
+    def find_member_by_id(self, member_id):
+        """Finds and returns a member object by their ID."""
+        return self._members.get(member_id)
+        
     def delete_member(self, member_id):
         if member_id in self._members:
             del self._members[member_id]
