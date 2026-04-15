@@ -1,3 +1,3 @@
-# src/utils/constants.py
-DATA_FILE = 'library_data.json'
+# System-wide configuration constants
+MAX_BORROW_LIMIT = 5
 LOAN_PERIOD_DAYS = 14

@@ -1,15 +1,16 @@
-# src/models/member.py
 class Member:
     """Represents a library member."""
-    def __init__(self, name, member_id):
+    def __init__(self, name: str, member_id: str):
         self.name = name
         self.member_id = member_id
+        self._borrowed_books = []  # Hidden implementation
 
-    def to_dict(self):
-        """Converts the member object to a dictionary for JSON serialization."""
-        return self.__dict__
+    def borrow_book(self, book):
+        self._borrowed_books.append(book)
 
-    @staticmethod
-    def from_dict(data):
-        """Creates a member object from a dictionary."""
-        return Member(**data)
+    def return_book(self, book):
+        if book in self._borrowed_books:
+            self._borrowed_books.remove(book)
+
+    def get_borrowed_books(self):
+        return self._borrowed_books.copy()

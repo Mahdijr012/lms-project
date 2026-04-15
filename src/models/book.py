@@ -1,17 +1,14 @@
-# src/models/book.py
 class Book:
-    """Represents a book in the library's collection."""
-    def __init__(self, title, author, isbn, is_borrowed=False):
+    """Represents a book and its basic attributes."""
+    def __init__(self, title: str, author: str, isbn: str, year: int):
         self.title = title
         self.author = author
         self.isbn = isbn
-        self.is_borrowed = is_borrowed
+        self.year = year
+        self.is_borrowed = False
 
-    def to_dict(self):
-        """Converts the book object to a dictionary for JSON serialization."""
-        return self.__dict__
+    def check_out(self):
+        self.is_borrowed = True
 
-    @staticmethod
-    def from_dict(data):
-        """Creates a book object from a dictionary."""
-        return Book(**data)
+    def check_in(self):
+        self.is_borrowed = False

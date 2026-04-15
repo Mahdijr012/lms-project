@@ -1,67 +1,53 @@
-# src/services/loan_service.py
-import json
 from datetime import date, timedelta
 from src.models.loan import Loan
-# Note: You need to create the constants.py file for this to work
-from src.utils.constants import LOAN_PERIOD_DAYS
+from src.utils.constants import MAX_BORROW_LIMIT, LOAN_PERIOD_DAYS
 
 class LoanService:
-    """Service for handling the logic of borrowing and returning books."""
+    """Coordinates the borrowing and returning of books."""
     def __init__(self, book_collection, member_collection):
-        self.book_collection = book_collection
-        self.member_collection = member_collection
-        self._loans = []  # A list to store all loans (active and historical)
+        self.book_catalog = book_collection
+        self.member_registry = member_collection
+        self.active_loans = []
 
-    def load_data(self, file_path):
-        try:
-            with open(file_path, 'r') as f:
-                data = json.load(f)
-                loan_data_list = data.get('loans', [])
-                self._loans = [Loan.from_dict(l_data) for l_data in loan_data_list]
-        except (FileNotFoundError, json.JSONDecodeError):
-            self._loans = []
-
-    def save_data(self, file_path, existing_data):
-        existing_data['loans'] = [loan.to_dict() for loan in self._loans]
-
-    def check_out_book(self, member_id, book_isbn):
-        member = self.member_collection.find_member_by_id(member_id)
+    def check_out_book(self, member_id: str, isbn: str):
+        book = self.book_catalog.find_book_by_isbn(isbn)
+        if not book:
+            return False, "Book not found."
+            
+        member = self.member_registry.find_member_by_id(member_id)
         if not member:
             return False, "Member not found."
 
-        book = self.book_collection.find_book_by_isbn(book_isbn)
-        if not book:
-            return False, "Book not found."
-
         if book.is_borrowed:
-            return False, "Book is already borrowed."
-        
+            return False, "Book is already checked out."
+            
+        if len(member.get_borrowed_books()) >= MAX_BORROW_LIMIT:
+            return False, "Member reached maximum borrow limit."
+
         checkout_date = date.today()
         due_date = checkout_date + timedelta(days=LOAN_PERIOD_DAYS)
-        new_loan = Loan(book_isbn, member_id, checkout_date, due_date)
-        self._loans.append(new_loan)
+        loan = Loan(book, member, checkout_date, due_date)
         
-        book.is_borrowed = True
-        return True, f"Book '{book.title}' checked out to {member.name}."
+        book.check_out()
+        member.borrow_book(book)
+        self.active_loans.append(loan)
 
-    def check_in_book(self, book_isbn):
-        book = self.book_collection.find_book_by_isbn(book_isbn)
+        return True, "Book checked out successfully."
+
+    def check_in_book(self, isbn: str):
+        book = self.book_catalog.find_book_by_isbn(isbn)
         if not book:
-            return False, "Book not found."
-        
+            return False, "Book not found in catalog."
+            
         if not book.is_borrowed:
-            return False, "This book is not currently borrowed."
+            return False, "Book is not currently borrowed."
 
-        # Find the active loan for this book
-        active_loan = None
-        for loan in self._loans:
-            if loan.book_isbn == book_isbn and loan.return_date is None:
-                active_loan = loan
-                break
-        
-        if not active_loan:
-            return False, "Error: No active loan record found for this book."
-        
-        active_loan.return_date = date.today()
-        book.is_borrowed = False
-        return True, f"Book '{book.title}' returned successfully."
+        # Find the loan and the member
+        for loan in self.active_loans:
+            if loan.book.isbn == isbn and loan.return_date is None:
+                loan.mark_returned(date.today())
+                book.check_in()
+                loan.member.return_book(book)
+                return True, "Book returned successfully."
+                
+        return False, "Active loan record not found."
