@@ -1,0 +1,24 @@
+{
+    "books": [
+        {
+            "title": "Python for beginners",
+            "author": "steve jobs",
+            "isbn": "111",
+            "year": 2010,
+            "is_borrowed": false
+        },
+        {
+            "title": "50 Laws of power",
+            "author": "Napoleon",
+            "isbn": "112",
+            "year": 1999,
+            "is_borrowed": false
+        }
+    ],
+    "members": [
+        {
+            "name": "Mahdi",
+            "member_id": "0021"
+        }
+    ]
+}
