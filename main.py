@@ -1,17 +1,11 @@
-import sys
-from pathlib import Path
-
 import tkinter as tk
 from tkinter import messagebox
 
-# Add project root to Python path
-sys.path.insert(0, str(Path(__file__).parent))
-
-from src.models.books import Book
+from src.models.book import Book
 from src.models.member import Member
 from src.services.book_collection import BookCollection
 from src.services.member_collection import MemberCollection
-from src.services.loan_services import LoanService
+from src.services.loan_service import LoanService
 
 book_collection = BookCollection()
 member_collection = MemberCollection()

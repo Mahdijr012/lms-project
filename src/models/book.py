@@ -19,7 +19,7 @@ class Book:
         return not self._is_borrowed
 
     def get_info(self):
-        return f"{self._title} by {self._author}"
+        return f"{self._title} by {self._author} ({self._year})"
 
     def get_isbn(self):
         return self._isbn

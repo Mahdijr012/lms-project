@@ -22,4 +22,4 @@ class LoanService:
         return 0
 
     def get_loans(self):
-        return self._loans
+        return list(self._loans)
