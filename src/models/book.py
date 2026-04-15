@@ -1,7 +1,6 @@
 # src/models/book.py
-
 class Book:
-    """Represents a single book with methods for JSON serialization."""
+    """Represents a book in the library's collection."""
     def __init__(self, title, author, isbn, is_borrowed=False):
         self.title = title
         self.author = author
@@ -9,14 +8,10 @@ class Book:
         self.is_borrowed = is_borrowed
 
     def to_dict(self):
-        """Converts the book object to a dictionary."""
+        """Converts the book object to a dictionary for JSON serialization."""
         return self.__dict__
 
     @staticmethod
     def from_dict(data):
         """Creates a book object from a dictionary."""
         return Book(**data)
-
-    def __str__(self):
-        status = "Borrowed" if self.is_borrowed else "Available"
-        return f"'{self.title}' by {self.author} (ISBN: {self.isbn}) - {status}"
