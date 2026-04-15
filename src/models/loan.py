@@ -1,21 +1,23 @@
-from datetime import datetime, timedelta
+# src/models/loan.py
+from datetime import date, timedelta
+from src.utils import constants
 
 class Loan:
-    def __init__(self, book, member):
-        self._book = book
-        self._member = member
-        self._borrow_date = datetime.now()
-        self._due_date = self._borrow_date + timedelta(days=14)
-        self._returned = False
-
-    def return_book(self):
-        self._returned = True
+    """
+    Represents the act of a member borrowing a book.
+    Connects a Member to a Book with a specific due date.
+    """
+    def __init__(self, book_isbn, member_id):
+        self.book_isbn = book_isbn
+        self.member_id = member_id
+        self.checkout_date = date.today()
+        self.due_date = self.checkout_date + timedelta(days=constants.LOAN_PERIOD_DAYS)
+        self.return_date = None # None means it's not returned yet
 
     def is_overdue(self):
-        return datetime.now() > self._due_date and not self._returned
+        """Checks if the loan is overdue as of today."""
+        return self.return_date is None and date.today() > self.due_date
 
-    def calculate_fine(self):
-        if not self.is_overdue():
-            return 0
-        days = (datetime.now() - self._due_date).days
-        return days * 0.5
+    def __str__(self):
+        status = "Returned" if self.return_date else "Active"
+        return f"Loan of ISBN {self.book_isbn} to Member {self.member_id} on {self.checkout_date} - Status: {status}"

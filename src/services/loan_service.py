@@ -1,25 +1,61 @@
+# src/services/loan_service.py
 from src.models.loan import Loan
+from src.utils import constants
 
 class LoanService:
-    def __init__(self):
-        self._loans = []
+    """Service for handling the business logic of checking books out and in."""
+    def __init__(self, book_collection, member_collection):
+        self.book_collection = book_collection
+        self.member_collection = member_collection
+        self._active_loans = {} # Key: book_isbn, Value: Loan object
 
-    def borrow_book(self, member, book):
-        if member.borrow_book(book):
-            loan = Loan(book, member)
-            self._loans.append(loan)
-            return True
-        return False
+    def check_out_book(self, member_id, book_isbn):
+        """Checks out a book to a member."""
+        member = self.member_collection.find_member_by_id(member_id)
+        if not member:
+            return False, "Member not found."
 
-    def return_book(self, member, book):
-        for loan in self._loans:
-            if loan._book == book and loan._member == member:
-                loan.return_book()
-                fine = loan.calculate_fine()
-                member.add_fine(fine)
-                member.return_book(book)
-                return fine
-        return 0
+        book = self.book_collection.find_book_by_isbn(book_isbn)
+        if not book:
+            return False, "Book not found."
 
-    def get_loans(self):
-        return list(self._loans)
+        # --- Business Rule Checks (as per Module 3) ---
+        if book.is_borrowed:
+            return False, "Book is already borrowed."
+        
+        if len(member.borrowed_books_isbns) >= constants.MAX_BORROW_LIMIT:
+            return False, "Member has reached the borrowing limit."
+        
+        # --- Perform the action ---
+        book.is_borrowed = True
+        member.borrowed_books_isbns.append(book.isbn)
+        new_loan = Loan(book_isbn, member_id)
+        self._active_loans[book_isbn] = new_loan
+
+        return True, f"Book '{book.title}' checked out to {member.name}."
+
+    def check_in_book(self, book_isbn):
+        """Checks in a book."""
+        book = self.book_collection.find_book_by_isbn(book_isbn)
+        if not book:
+            return False, "Book not found."
+        
+        if not book.is_borrowed:
+            return False, "Book is not currently borrowed."
+
+        loan = self._active_loans.get(book_isbn)
+        if not loan:
+            # This case indicates a data inconsistency, but we'll handle it gracefully
+            return False, "Error: Loan record not found for this borrowed book."
+        
+        member = self.member_collection.find_member_by_id(loan.member_id)
+
+        # --- Perform the action ---
+        book.is_borrowed = False
+        if member and book.isbn in member.borrowed_books_isbns:
+            member.borrowed_books_isbns.remove(book.isbn)
+        
+        # We can move the loan from active to a historical log here if we want
+        del self._active_loans[book_isbn]
+
+        return True, f"Book '{book.title}' returned successfully."

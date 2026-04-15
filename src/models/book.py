@@ -1,25 +1,18 @@
+# src/models/book.py
+
 class Book:
-    def __init__(self, title, author, isbn, year):
-        self._title = title
-        self._author = author
-        self._isbn = isbn
-        self._year = year
-        self._is_borrowed = False
+    """
+    Represents a single book in the library. This is a core data model (ADT).
+    It encapsulates the book's attributes and state (like is_borrowed).
+    """
+    def __init__(self, title, author, isbn):
+        self.title = title
+        self.author = author
+        self.isbn = isbn
+        # A book is not borrowed when it's first added
+        self.is_borrowed = False
 
-    def borrow(self):
-        if not self._is_borrowed:
-            self._is_borrowed = True
-            return True
-        return False
-
-    def return_book(self):
-        self._is_borrowed = False
-
-    def is_available(self):
-        return not self._is_borrowed
-
-    def get_info(self):
-        return f"{self._title} by {self._author} ({self._year})"
-
-    def get_isbn(self):
-        return self._isbn
+    def __str__(self):
+        """Provides a user-friendly string representation of the book."""
+        status = "Borrowed" if self.is_borrowed else "Available"
+        return f"'{self.title}' by {self.author} (ISBN: {self.isbn}) - Status: {status}"

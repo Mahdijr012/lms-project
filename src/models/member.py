@@ -1,39 +1,16 @@
+# src/models/member.py
+
 class Member:
-    MAX_BORROW_LIMIT = 5
+    """
+    Represents a single library member. This is another core data model (ADT).
+    It encapsulates member information and their relationship with books (borrowed_books).
+    """
+    def __init__(self, name, member_id):
+        self.name = name
+        self.member_id = member_id
+        # We will store the ISBNs of the books the member has borrowed
+        self.borrowed_books_isbns = []
 
-    def __init__(self, name, member_id, contact):
-        self._name = name
-        self._member_id = member_id
-        self._contact = contact
-        self._borrowed_books = []
-        self._fines = 0.0
-
-    def borrow_book(self, book):
-        if len(self._borrowed_books) >= self.MAX_BORROW_LIMIT:
-            return False
-        if book.borrow():
-            self._borrowed_books.append(book)
-            return True
-        return False
-
-    def return_book(self, book):
-        if book in self._borrowed_books:
-            self._borrowed_books.remove(book)
-            book.return_book()
-            return True
-        return False
-
-    def get_borrowed_books(self):
-        return self._borrowed_books.copy()
-
-    def get_id(self):
-        return self._member_id
-
-    def get_name(self):
-        return self._name
-
-    def add_fine(self, amount):
-        self._fines += amount
-
-    def get_fines(self):
-        return self._fines
+    def __str__(self):
+        """Provides a user-friendly string representation of the member."""
+        return f"Member: {self.name} (ID: {self.member_id}), Borrowed: {len(self.borrowed_books_isbns)} books"
