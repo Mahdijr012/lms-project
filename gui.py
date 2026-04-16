@@ -203,6 +203,77 @@ class LibraryDashboard:
         f = tk.Frame(self.main_content, bg="white", bd=1, relief="solid", padx=40, pady=40)
         f.pack(fill="x", padx=40, pady=10)
 
-        # Checkout section
-        tk.Label(f, text="Check Out Book", font=("Helvetica", 16, "bold"), fg="#2980b9", bg="white").grid(row=0, column=0, columnspan=2, pady=(0,20))
+        # Checkout / Return section
+        tk.Label(f, text="Check Out / Return Book", font=("Helvetica", 16, "bold"), fg="#2980b9", bg="white").grid(row=0, column=0, columnspan=6, pady=(0,20), sticky="w")
+
+        tk.Label(f, text="Member ID:", bg="white").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        member_id_entry = ttk.Entry(f, width=25)
+        member_id_entry.grid(row=1, column=1, padx=5, pady=5)
+
+        tk.Label(f, text="ISBN:", bg="white").grid(row=1, column=2, padx=5, pady=5, sticky="e")
+        isbn_entry = ttk.Entry(f, width=25)
+        isbn_entry.grid(row=1, column=3, padx=5, pady=5)
+
+        def refresh_loans():
+            for item in loan_tree.get_children():
+                loan_tree.delete(item)
+            for loan in self.loan_system.active_loans:
+                loan_tree.insert(
+                    "",
+                    "end",
+                    values=(
+                        loan.member.name,
+                        loan.member.member_id,
+                        loan.book.title,
+                        loan.book.isbn,
+                        loan.due_date.strftime("%Y-%m-%d"),
+                    ),
+                )
+
+        def checkout():
+            member_id = member_id_entry.get().strip()
+            isbn = isbn_entry.get().strip()
+            if not member_id or not isbn:
+                return messagebox.showwarning("Error", "Member ID and ISBN are required.")
+
+            success, msg = self.loan_system.check_out_book(member_id, isbn)
+            if success:
+                refresh_loans()
+                member_id_entry.delete(0, "end")
+                isbn_entry.delete(0, "end")
+                messagebox.showinfo("Success", msg)
+            else:
+                messagebox.showerror("Error", msg)
+
+        def return_book():
+            isbn = isbn_entry.get().strip()
+            if not isbn:
+                sel = loan_tree.selection()
+                if sel:
+                    isbn = loan_tree.item(sel[0], "values")[3]
+
+            if not isbn:
+                return messagebox.showwarning("Error", "Enter or select an ISBN to return.")
+
+            success, msg = self.loan_system.check_in_book(isbn)
+            if success:
+                refresh_loans()
+                isbn_entry.delete(0, "end")
+                messagebox.showinfo("Success", msg)
+            else:
+                messagebox.showerror("Error", msg)
+
+        ttk.Button(f, text="Check Out", command=checkout).grid(row=1, column=4, padx=10, ipady=3)
+        ttk.Button(f, text="Return Book", command=return_book).grid(row=1, column=5, padx=10, ipady=3)
+
+        table_frame = tk.Frame(self.main_content, bg="white", bd=1, relief="solid")
+        table_frame.pack(fill="both", expand=True, padx=40, pady=10)
+
+        cols = ("Member", "Member ID", "Title", "ISBN", "Due Date")
+        loan_tree = ttk.Treeview(table_frame, columns=cols, show="headings")
+        for c in cols:
+            loan_tree.heading(c, text=c)
+        loan_tree.pack(fill="both", expand=True, padx=10, pady=10)
+
+        refresh_loans()
         
