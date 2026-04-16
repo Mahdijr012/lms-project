@@ -1,205 +1,208 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
+from datetime import date
 
-from src.models.member import Member
 from src.models.book import Book
+from src.models.member import Member
 
-class LibraryGUI:
+class LibraryDashboard:
     def __init__(self, root, book_system, member_system, loan_system):
         self.root = root
-        self.root.title("Library Management System")
-        self.root.geometry("950x650")
-        self.root.configure(bg="#f8f9fa") # Light grey background like your photo
+        self.root.title("Library Management System - Admin Dashboard")
+        self.root.geometry("1100x700")
+        self.root.configure(bg="#ecf0f5")
 
-        # Connections to backend passed from main.py
         self.book_system = book_system
         self.member_system = member_system
         self.loan_system = loan_system
 
-        # Book entry attributes (initialized in build_books_tab)
-
-        # Header
-        header_label = tk.Label(self.root, text="Library Management System", font=("Helvetica", 22, "bold"), fg="#1b3d6d", bg="#f8f9fa")
-        header_label.pack(pady=15)
-
-        # Notebook (Tabs)
-        style = ttk.Style()
-        style.theme_use('default')
-        # Style the tabs to look like your photo (grey tabs, white text area)
-        style.configure("TNotebook", background="#f8f9fa")
-        style.configure("TNotebook.Tab", padding=[20, 5], font=('Helvetica', 10, 'bold'), background="#d3d3d3")
-        style.map("TNotebook.Tab", background=[("selected", "white")])
+        # --- LAYOUT FRAMES ---
+        self.sidebar = tk.Frame(self.root, bg="#2c3e50", width=220)
+        self.sidebar.pack(side="left", fill="y")
         
-        self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(expand=True, fill='both', padx=15, pady=(0, 15))
+        self.main_content = tk.Frame(self.root, bg="#ecf0f5")
+        self.main_content.pack(side="right", fill="both", expand=True)
 
-        self.tab_members = tk.Frame(self.notebook, bg="white", bd=1, relief="solid")
-        self.tab_books = tk.Frame(self.notebook, bg="white", bd=1, relief="solid")
-        self.tab_search = tk.Frame(self.notebook, bg="white", bd=1, relief="solid")
-        self.tab_borrow = tk.Frame(self.notebook, bg="white", bd=1, relief="solid")
-        self.tab_return = tk.Frame(self.notebook, bg="white", bd=1, relief="solid")
+        self.build_sidebar()
+        self.show_home() # Default screen
+
+    # ==========================================
+    #             SIDEBAR MENU
+    # ==========================================
+    def build_sidebar(self):
+        tk.Label(self.sidebar, text="LMS Admin", font=("Helvetica", 18, "bold"), fg="white", bg="#2c3e50").pack(pady=30)
+
+        buttons = [
+            ("🏠 Dashboard Overview", self.show_home),
+            ("📚 Manage Books", self.show_books),
+            ("👥 Manage Members", self.show_members),
+            ("🔄 Checkout / Return", self.show_loans),
+            ("📊 View Reports", self.show_reports)
+        ]
+
+        for text, command in buttons:
+            btn = tk.Button(self.sidebar, text=text, font=("Helvetica", 12), fg="white", bg="#34495e", 
+                            bd=0, activebackground="#1abc9c", anchor="w", padx=20, command=command)
+            btn.pack(fill="x", pady=2, ipady=10)
+
+    def clear_main(self):
+        for widget in self.main_content.winfo_children():
+            widget.destroy()
+
+    # ==========================================
+    #             1. HOME DASHBOARD
+    # ==========================================
+    def show_home(self):
+        self.clear_main()
+        tk.Label(self.main_content, text="System Overview", font=("Helvetica", 24, "bold"), bg="#ecf0f5", fg="#2c3e50").pack(pady=30, anchor="w", padx=40)
+
+        cards_frame = tk.Frame(self.main_content, bg="#ecf0f5")
+        cards_frame.pack(fill="x", padx=40)
+
+        def make_card(parent, title, value, color):
+            f = tk.Frame(parent, bg=color, width=220, height=130)
+            f.pack_propagate(False)
+            f.pack(side="left", padx=15, expand=True, fill="both")
+            tk.Label(f, text=title, font=("Helvetica", 14), fg="white", bg=color).pack(pady=(25, 5))
+            tk.Label(f, text=str(value), font=("Helvetica", 28, "bold"), fg="white", bg=color).pack()
+
+        make_card(cards_frame, "Total Book Titles", len(self.book_system.get_all_books()), "#3498db")
+        make_card(cards_frame, "Registered Members", len(self.member_system.get_all_members()), "#2ecc71")
+        make_card(cards_frame, "Active Loans", len(self.loan_system.active_loans), "#e74c3c")
+
+    # ==========================================
+    #             2. BOOK MANAGEMENT
+    # ==========================================
+    def show_books(self):
+        self.clear_main()
+        tk.Label(self.main_content, text="Book Management", font=("Helvetica", 24, "bold"), bg="#ecf0f5", fg="#2c3e50").pack(pady=20, anchor="w", padx=40)
+
+        # Input Frame
+        controls = tk.Frame(self.main_content, bg="white", bd=1, relief="solid", padx=20, pady=20)
+        controls.pack(fill="x", padx=40, pady=10)
+
+        tk.Label(controls, text="Title:", bg="white").grid(row=0, column=0, padx=5, pady=5)
+        title_entry = ttk.Entry(controls, width=25); title_entry.grid(row=0, column=1, padx=5, pady=5)
         
-        self.notebook.add(self.tab_members, text='Members')
-        self.notebook.add(self.tab_books, text='Books')
-        self.notebook.add(self.tab_search, text='Search')
-        self.notebook.add(self.tab_borrow, text='Borrow Book')
-        self.notebook.add(self.tab_return, text='Return Book')
-
-        self.build_members_tab()
-        self.build_books_tab()
-        self.build_search_tab()
-        self.build_borrow_tab()
-        self.build_return_tab()
-
-    # ==========================
-    # MEMBERS TAB
-    # ==========================
-    def build_members_tab(self):
-        left_frame = tk.Frame(self.tab_members, bd=1, relief="solid", bg="white")
-        left_frame.pack(side="left", fill="y", padx=15, pady=15)
-
-        tk.Label(left_frame, text="Manage Members", font=("Helvetica", 14, "bold"), fg="#1b3d6d", bg="white").pack(pady=(20, 20), padx=30)
-
-        tk.Label(left_frame, text="Member Name", font=("Helvetica", 9), bg="white").pack(anchor="w", padx=15)
-        self.entry_mem_name = ttk.Entry(left_frame, width=30)
-        self.entry_mem_name.pack(padx=15, pady=(2, 15))
-
-        tk.Label(left_frame, text="Member ID", font=("Helvetica", 9), bg="white").pack(anchor="w", padx=15)
-        self.entry_mem_id = ttk.Entry(left_frame, width=30)
-        self.entry_mem_id.pack(padx=15, pady=(2, 25))
-
-        ttk.Button(left_frame, text="Register Member", command=self.register_member).pack(fill="x", padx=15, pady=8, ipady=4)
-        ttk.Button(left_frame, text="Delete Member", command=self.delete_member).pack(fill="x", padx=15, pady=8, ipady=4)
-        ttk.Button(left_frame, text="Refresh Members", command=self.refresh_members).pack(fill="x", padx=15, pady=8, ipady=4)
-
-        right_frame = tk.Frame(self.tab_members, bd=1, relief="solid", bg="white")
-        right_frame.pack(side="right", fill="both", expand=True, padx=15, pady=15)
-
-        self.member_tree = ttk.Treeview(right_frame, columns=("Name", "Member ID"), show="headings")
-        self.member_tree.heading("Name", text="Name")
-        self.member_tree.heading("Member ID", text="Member ID")
-        self.member_tree.pack(fill="both", expand=True, padx=10, pady=10)
-
-    def register_member(self):
-        name, mem_id = self.entry_mem_name.get().strip(), self.entry_mem_id.get().strip()
-        if not name or not mem_id: return messagebox.showwarning("Error", "Fill all fields.")
-        try:
-            self.member_system.add_member(Member(name, mem_id))
-            self.entry_mem_name.delete(0, tk.END); self.entry_mem_id.delete(0, tk.END)
-            self.refresh_members()
-            messagebox.showinfo("Success", "Member Registered!")
-        except Exception as e: messagebox.showerror("Error", str(e))
-
-    def delete_member(self):
-        selected = self.member_tree.selection()
-        if not selected: return messagebox.showwarning("Error", "Select a member.")
-        try:
-            self.member_system.remove_member(self.member_tree.item(selected[0], "values")[1])
-            self.refresh_members()
-        except Exception as e: messagebox.showerror("Error", str(e))
-
-    def refresh_members(self):
-        for item in self.member_tree.get_children(): self.member_tree.delete(item)
-        for m in self.member_system.get_all_members(): self.member_tree.insert("", "end", values=(m.name, m.member_id))
-
-    # ==========================
-    # BOOKS TAB
-    # ==========================
-    def build_books_tab(self):
-        left_frame = tk.Frame(self.tab_books, bd=1, relief="solid", bg="white")
-        left_frame.pack(side="left", fill="y", padx=15, pady=15)
-
-        tk.Label(left_frame, text="Manage Books", font=("Helvetica", 14, "bold"), fg="#1b3d6d", bg="white").pack(pady=(20, 20), padx=30)
+        tk.Label(controls, text="Author:", bg="white").grid(row=0, column=2, padx=5, pady=5)
+        author_entry = ttk.Entry(controls, width=25); author_entry.grid(row=0, column=3, padx=5, pady=5)
         
-        # Inputs
-        tk.Label(left_frame, text="Title", font=("Helvetica", 9), bg="white").pack(anchor="w", padx=15)
-        self.entry_book_title = ttk.Entry(left_frame, width=30)
-        self.entry_book_title.pack(padx=15, pady=(2, 10))
+        tk.Label(controls, text="ISBN:", bg="white").grid(row=1, column=0, padx=5, pady=5)
+        isbn_entry = ttk.Entry(controls, width=25); isbn_entry.grid(row=1, column=1, padx=5, pady=5)
         
-        tk.Label(left_frame, text="Author", font=("Helvetica", 9), bg="white").pack(anchor="w", padx=15)
-        self.entry_book_author = ttk.Entry(left_frame, width=30)
-        self.entry_book_author.pack(padx=15, pady=(2, 10))
+        tk.Label(controls, text="Year:", bg="white").grid(row=1, column=2, padx=5, pady=5)
+        year_entry = ttk.Entry(controls, width=10); year_entry.grid(row=1, column=3, padx=5, pady=5, sticky="w")
+
+        tk.Label(controls, text="Copies:", bg="white").grid(row=1, column=4, padx=5, pady=5)
+        copies_entry = ttk.Entry(controls, width=10); copies_entry.grid(row=1, column=5, padx=5, pady=5)
+
+        # Table Frame
+        table_frame = tk.Frame(self.main_content, bg="white", bd=1, relief="solid")
+        table_frame.pack(fill="both", expand=True, padx=40, pady=10)
+
+        cols = ("Title", "Author", "ISBN", "Year", "Availability")
+        tree = ttk.Treeview(table_frame, columns=cols, show="headings")
+        for c in cols: tree.heading(c, text=c)
+        tree.pack(fill="both", expand=True, padx=10, pady=10)
+
+        def refresh():
+            for item in tree.get_children(): tree.delete(item)
+            for b in self.book_system.get_all_books():
+                tree.insert("", "end", values=(b.title, b.author, b.isbn, b.year, f"{b.available_copies} / {b.total_copies}"))
+
+        def add():
+            try:
+                b = Book(title_entry.get(), author_entry.get(), isbn_entry.get(), int(year_entry.get()), int(copies_entry.get() or 1))
+                self.book_system.add_book(b)
+                refresh(); messagebox.showinfo("Success", "Book Added")
+            except Exception as e: messagebox.showerror("Error", str(e))
+
+        def delete():
+            sel = tree.selection()
+            if not sel: return messagebox.showwarning("Error", "Select a book")
+            try:
+                self.book_system.remove_book(tree.item(sel[0], "values")[2])
+                refresh()
+            except Exception as e: messagebox.showerror("Error", str(e))
+
+        ttk.Button(controls, text="Add Book", command=add).grid(row=0, column=6, padx=10, ipady=3)
+        ttk.Button(controls, text="Delete Book", command=delete).grid(row=1, column=6, padx=10, ipady=3)
+        refresh()
+
+    # ==========================================
+    #             3. MEMBER MANAGEMENT
+    # ==========================================
+    def show_members(self):
+        self.clear_main()
+        tk.Label(self.main_content, text="Member Management", font=("Helvetica", 24, "bold"), bg="#ecf0f5", fg="#2c3e50").pack(pady=20, anchor="w", padx=40)
+
+        controls = tk.Frame(self.main_content, bg="white", bd=1, relief="solid", padx=20, pady=20)
+        controls.pack(fill="x", padx=40, pady=10)
+
+        tk.Label(controls, text="Name:", bg="white").grid(row=0, column=0, padx=5, pady=5)
+        name_entry = ttk.Entry(controls, width=30); name_entry.grid(row=0, column=1, padx=5, pady=5)
         
-        tk.Label(left_frame, text="ISBN", font=("Helvetica", 9), bg="white").pack(anchor="w", padx=15)
-        self.entry_book_isbn = ttk.Entry(left_frame, width=30)
-        self.entry_book_isbn.pack(padx=15, pady=(2, 10))
+        tk.Label(controls, text="Member ID:", bg="white").grid(row=0, column=2, padx=5, pady=5)
+        id_entry = ttk.Entry(controls, width=30); id_entry.grid(row=0, column=3, padx=5, pady=5)
+
+        table_frame = tk.Frame(self.main_content, bg="white", bd=1, relief="solid")
+        table_frame.pack(fill="both", expand=True, padx=40, pady=10)
+
+        cols = ("Name", "Member ID", "Books Borrowed", "Fines Owed")
+        tree = ttk.Treeview(table_frame, columns=cols, show="headings")
+        for c in cols: tree.heading(c, text=c)
+        tree.pack(fill="both", expand=True, padx=10, pady=10)
+
+        def refresh():
+            for item in tree.get_children(): tree.delete(item)
+            for m in self.member_system.get_all_members():
+                tree.insert("", "end", values=(m.name, m.member_id, len(m.get_borrowed_books()), f"${m.fines_owed:.2f}"))
+
+        def add():
+            try:
+                self.member_system.add_member(Member(name_entry.get(), id_entry.get()))
+                refresh(); messagebox.showinfo("Success", "Member Registered")
+            except Exception as e: messagebox.showerror("Error", str(e))
+
+        def delete():
+            sel = tree.selection()
+            if not sel: return messagebox.showwarning("Error", "Select a member")
+            try:
+                self.member_system.remove_member(tree.item(sel[0], "values")[1])
+                refresh()
+            except Exception as e: messagebox.showerror("Error", str(e))
+
+        def pay_fine():
+            sel = tree.selection()
+            if not sel: return messagebox.showwarning("Error", "Select a member")
+            mem = self.member_system.find_member_by_id(tree.item(sel[0], "values")[1])
+            if not mem:
+                return messagebox.showerror("Error", "Selected member not found.")
+            mem.fines_owed = 0.0 # Simplistic pay-off
+            refresh(); messagebox.showinfo("Success", "Fines cleared.")
+    
+        ttk.Button(controls, text="Register", command=add).grid(row=0, column=4, padx=10)
+        ttk.Button(controls, text="Delete", command=delete).grid(row=0, column=5, padx=10)
+        ttk.Button(controls, text="Clear Fines", command=pay_fine).grid(row=0, column=6, padx=10)
+        refresh()
+
+    # ==========================================
+    #             5. REPORTS
+    # ==========================================
+    def show_reports(self):
+        self.clear_main()
+        tk.Label(self.main_content, text="Reports", font=("Helvetica", 24, "bold"), bg="#ecf0f5", fg="#2c3e50").pack(pady=20, anchor="w", padx=40)
+
+    # ==========================================
+    #             4. LOANS (CHECKOUT/RETURN)
+    # ==========================================
+    def show_loans(self):
+        self.clear_main()
+        tk.Label(self.main_content, text="Loan Operations", font=("Helvetica", 24, "bold"), bg="#ecf0f5", fg="#2c3e50").pack(pady=20, anchor="w", padx=40)
+
+        f = tk.Frame(self.main_content, bg="white", bd=1, relief="solid", padx=40, pady=40)
+        f.pack(fill="x", padx=40, pady=10)
+
+        # Checkout section
+        tk.Label(f, text="Check Out Book", font=("Helvetica", 16, "bold"), fg="#2980b9", bg="white").grid(row=0, column=0, columnspan=2, pady=(0,20))
         
-        tk.Label(left_frame, text="Year", font=("Helvetica", 9), bg="white").pack(anchor="w", padx=15)
-        self.entry_book_year = ttk.Entry(left_frame, width=30)
-        self.entry_book_year.pack(padx=15, pady=(2, 25))
-
-        ttk.Button(left_frame, text="Add Book", command=self.add_book).pack(fill="x", padx=15, pady=8, ipady=4)
-        ttk.Button(left_frame, text="Delete Book", command=self.delete_book).pack(fill="x", padx=15, pady=5, ipady=4)
-        ttk.Button(left_frame, text="Refresh Books", command=self.refresh_books).pack(fill="x", padx=15, pady=5, ipady=4)
-
-        right_frame = tk.Frame(self.tab_books, bd=1, relief="solid", bg="white")
-        right_frame.pack(side="right", fill="both", expand=True, padx=15, pady=15)
-
-        self.book_tree = ttk.Treeview(right_frame, columns=("Title", "Author", "ISBN", "Status"), show="headings")
-        for col in ["Title", "Author", "ISBN", "Status"]: self.book_tree.heading(col, text=col)
-        self.book_tree.pack(fill="both", expand=True, padx=10, pady=10)
-
-    def add_book(self):
-        t, a, i, y = self.entry_book_title.get(), self.entry_book_author.get(), self.entry_book_isbn.get(), self.entry_book_year.get()
-        if not all([t, a, i, y]): return messagebox.showwarning("Error", "Fill all fields.")
-        try:
-            self.book_system.add_book(Book(t, a, i, int(y)))
-            for attr in ["title", "author", "isbn", "year"]: getattr(self, f"entry_book_{attr}").delete(0, tk.END)
-            self.refresh_books()
-        except Exception as e: messagebox.showerror("Error", str(e))
-
-    def delete_book(self):
-        selected = self.book_tree.selection()
-        if not selected: return messagebox.showwarning("Error", "Select a book.")
-        try:
-            self.book_system.remove_book(self.book_tree.item(selected[0], "values")[2])
-            self.refresh_books()
-        except Exception as e: messagebox.showerror("Error", str(e))
-
-    def refresh_books(self):
-        for item in self.book_tree.get_children(): self.book_tree.delete(item)
-        for b in self.book_system.get_all_books():
-            self.book_tree.insert("", "end", values=(b.title, b.author, b.isbn, "Borrowed" if b.is_borrowed else "Available"))
-
-    # ==========================
-    # SEARCH TAB
-    # ==========================
-    def build_search_tab(self):
-        pass
-
-    # ==========================
-    # BORROW / RETURN TABS
-    # ==========================
-    def build_borrow_tab(self):
-        f = tk.Frame(self.tab_borrow, bd=1, relief="solid", bg="white")
-        f.place(relx=0.5, rely=0.4, anchor="center")
-        tk.Label(f, text="Borrow Book", font=("Helvetica", 14, "bold"), fg="#1b3d6d", bg="white").pack(pady=20, padx=50)
-        
-        tk.Label(f, text="Member ID", bg="white").pack(anchor="w", padx=30)
-        self.b_mem = ttk.Entry(f, width=35); self.b_mem.pack(padx=30, pady=(2, 10))
-        tk.Label(f, text="Book ISBN", bg="white").pack(anchor="w", padx=30)
-        self.b_isbn = ttk.Entry(f, width=35); self.b_isbn.pack(padx=30, pady=(2, 20))
-        
-        ttk.Button(f, text="Process Checkout", command=self.borrow_book).pack(fill="x", padx=30, pady=20, ipady=4)
-
-    def build_return_tab(self):
-        f = tk.Frame(self.tab_return, bd=1, relief="solid", bg="white")
-        f.place(relx=0.5, rely=0.4, anchor="center")
-        tk.Label(f, text="Return Book", font=("Helvetica", 14, "bold"), fg="#1b3d6d", bg="white").pack(pady=20, padx=50)
-        
-        tk.Label(f, text="Book ISBN", bg="white").pack(anchor="w", padx=30)
-        self.r_isbn = ttk.Entry(f, width=35); self.r_isbn.pack(padx=30, pady=(2, 20))
-        
-        ttk.Button(f, text="Process Return", command=self.return_book).pack(fill="x", padx=30, pady=20, ipady=4)
-
-    def borrow_book(self):
-        success, msg = self.loan_system.check_out_book(self.b_mem.get(), self.b_isbn.get())
-        if success:
-            messagebox.showinfo("Success", msg); self.refresh_books()
-        else: messagebox.showwarning("Failed", msg)
-
-    def return_book(self):
-        success, msg = self.loan_system.check_in_book(self.r_isbn.get())
-        if success:
-            messagebox.showinfo("Success", msg); self.refresh_books()
-        else: messagebox.showwarning("Failed", msg)

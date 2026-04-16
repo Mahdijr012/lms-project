@@ -1,14 +1,18 @@
 class Book:
-    """Represents a book and its basic attributes."""
-    def __init__(self, title: str, author: str, isbn: str, year: int):
+    def __init__(self, title: str, author: str, isbn: str, year: int, total_copies: int = 1):
         self.title = title
         self.author = author
         self.isbn = isbn
         self.year = year
-        self.is_borrowed = False
+        self.total_copies = total_copies
+        self.available_copies = total_copies
 
     def check_out(self):
-        self.is_borrowed = True
+        if self.available_copies > 0:
+            self.available_copies -= 1
+            return True
+        return False
 
     def check_in(self):
-        self.is_borrowed = False
+        if self.available_copies < self.total_copies:
+            self.available_copies += 1

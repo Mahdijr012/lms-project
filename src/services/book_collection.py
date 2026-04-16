@@ -1,5 +1,6 @@
 class BookCollection:
-    """ADT for managing a collection of books."""
+    """ADT for managing the library's catalog of books."""
+    
     def __init__(self):
         self._books = {} 
 
@@ -11,6 +12,9 @@ class BookCollection:
     def remove_book(self, isbn: str):
         if isbn not in self._books:
             raise KeyError(f"Book with ISBN {isbn} not found.")
+        # Only allow deleting if all copies are in the library
+        if self._books[isbn].available_copies < self._books[isbn].total_copies:
+            raise ValueError("Cannot delete book. Copies are currently checked out.")
         del self._books[isbn]
 
     def find_book_by_isbn(self, isbn: str):
